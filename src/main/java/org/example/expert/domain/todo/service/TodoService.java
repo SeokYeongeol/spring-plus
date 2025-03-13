@@ -7,6 +7,7 @@ import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
 import org.example.expert.domain.todo.dto.response.TodoSaveResponse;
+import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.dto.response.UserResponse;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -85,5 +88,22 @@ public class TodoService {
                 todo.getCreatedAt(),
                 todo.getModifiedAt()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TodoSearchResponse> getSearchTodos(
+            int page,
+            int size,
+            String query,
+            LocalDateTime startDate,
+            LocalDateTime endDate
+    ) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+
+        Page<Todo> todos = query == null
+                ? todoRepository.findAllBySearchDateOrderByCreatedAtDesc(startDate, endDate, pageable)
+                : todoRepository.findAllBySearchOrderByCreatedAtDesc(query, startDate, endDate, pageable);
+
+        return todos.map(TodoSearchResponse::of);
     }
 }
