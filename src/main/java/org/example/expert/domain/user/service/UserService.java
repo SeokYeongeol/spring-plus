@@ -2,13 +2,18 @@ package org.example.expert.domain.user.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.expert.domain.common.exception.InvalidRequestException;
+import org.example.expert.domain.common.uploader.S3Uploader;
 import org.example.expert.domain.user.dto.request.UserChangePasswordRequest;
+import org.example.expert.domain.user.dto.request.UserChangeProfileRequest;
+import org.example.expert.domain.user.dto.response.UserChangeProfileResponse;
 import org.example.expert.domain.user.dto.response.UserResponse;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.repository.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +22,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final S3Uploader s3Uploader;
 
     public UserResponse getUser(long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new InvalidRequestException("User not found"));
@@ -40,6 +46,24 @@ public class UserService {
 
         user.changePassword(passwordEncoder.encode(userChangePasswordRequest.getNewPassword()));
     }
+
+    @Transactional
+    public UserChangeProfileResponse changeProfile(
+            Long userId,
+            UserChangeProfileRequest dto,
+            MultipartFile file
+    ) {
+        User findUser = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidRequestException("User Not Found"));
+
+        String imageUrl = findUser.getProfileImage();
+        if(file != null && !file.isEmpty()) {
+            imageUrl = s3Uploader.uploadFile(file);
+        }
+        findUser.changeProfile(dto.getNickname(), imageUrl);
+
+        return UserChangeProfileResponse.of(findUser);
+     }
 
     private static void validateNewPassword(UserChangePasswordRequest userChangePasswordRequest) {
         if (userChangePasswordRequest.getNewPassword().length() < 8 ||
