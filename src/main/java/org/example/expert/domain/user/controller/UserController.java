@@ -9,6 +9,7 @@ import org.example.expert.domain.user.dto.request.UserChangeProfileRequest;
 import org.example.expert.domain.user.dto.response.UserChangeProfileResponse;
 import org.example.expert.domain.user.dto.response.UserResponse;
 import org.example.expert.domain.user.service.UserService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,15 @@ public class UserController {
     @GetMapping("/users/{userId}")
     public ResponseEntity<UserResponse> getUser(@PathVariable long userId) {
         return ResponseEntity.ok(userService.getUser(userId));
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<Page<UserResponse>> getUsers(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String query
+    ) {
+        return ResponseEntity.ok(userService.getUsers(page, size, query));
     }
 
     @PutMapping("/users")

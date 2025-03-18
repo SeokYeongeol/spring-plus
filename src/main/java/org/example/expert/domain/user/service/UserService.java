@@ -9,6 +9,9 @@ import org.example.expert.domain.user.dto.response.UserChangeProfileResponse;
 import org.example.expert.domain.user.dto.response.UserResponse;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,9 +27,21 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final S3Uploader s3Uploader;
 
+    @Transactional(readOnly = true)
     public UserResponse getUser(long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new InvalidRequestException("User not found"));
         return new UserResponse(user.getId(), user.getEmail(), user.getNickname());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserResponse> getUsers(int page, int size, String query) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+
+        Page<User> users = query == null
+                ? userRepository.findAll(pageable)
+                : userRepository.findAllByNickname(query, pageable);
+
+        return users.map(UserResponse::of);
     }
 
     @Transactional
